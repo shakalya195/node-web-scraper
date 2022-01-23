@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head'); %>
+</head>
+<body class="container">
+
+<header>
+  <%- include('../partials/header'); %>
+</header>
+
+<main>
+  <div class="jumbotron">
+    <h1>Welcome to NodeJS scrapping plaeform</h1>
+    <p>Welcome to templating using EJS</p>
+    <input id="site" type="text" name="site" value="<%- site %>" style="width:100%" />
+    <button onclick="show()">RUN</button>
+    <div id="siteList">
+
+    </div>
+  </div>
+</main>
+<script>
+function show()
+{
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("POST", '/sitelist', true);
+    //Send the proper header information along with the request
+    xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    xmlhttp.onreadystatechange = function() { // Call a function when the state changes.
+        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+            // Request finished. Do processing here.
+            console.log('resp',xmlhttp.responseText)
+            document.getElementById('siteList').innerHTML=xmlhttp.responseText;
+        }
+    }
+    var site = document.getElementById('site').value;
+    xmlhttp.send("url="+site);
+} 
+</script>
+<footer>
+  <%- include('../partials/footer'); %>
+</footer>
+
+</body>
+</html>
