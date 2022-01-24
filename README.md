@@ -14,6 +14,8 @@ $ node server.js
 
  Put the URL like "https://www.1mg.com/sitemap.xml";
  it will be collecting nested xml from the root sitemap.xml
- and make an entry into mongodb database "node-web-scrapper" collection "urls" for each other links then xml.
+ its create copy of xml in local first...so you will see list of all xml found along with server.js.
+ then we can read all the xml again to store into database.
+ So it make an entry into mongodb database "node-web-scrapper" collection "urls" for each other links then xml.
 
 which cna be further used for crapping One by One.
