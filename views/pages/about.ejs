@@ -8,19 +8,35 @@
 <header>
   <%- include('../partials/header'); %>
 </header>
-
+<style>
+  #urlList a{
+    display:inline-block;
+    padding:10px;
+    margin-right: 10px;
+  }
+  #auto{
+    height: 24px;
+    width: 30px;
+    float: left;
+    margin-right: 10px;
+  }
+</style>
 <main>
 <div class="row">
-  <div class="col-sm-8">
-    <div class="jumbotron">
-      <h1>This is great</h1>
-      <p>Welcome to templating using EJS</p>
-    </div>
+  <div class="col-sm-4">
+    <hr/>
+    <label>
+      <input id="auto" type="checkbox" name="auto" value="auto" /> AUTO HIT
+    </label>
+    <input id="name" type="text" name="site" value="" style="width:100%" />
+    <input id="skip" type="text" name="site" value="0" style="width:100%" placeholder="skip"/>
+    <input id="limit" type="text" name="site" value="10" style="width:100%" placeholder="limit"/>
+    <hr/>
+    <button onclick="getList()">LIST</button>
   </div>
 
-  <div class="col-sm-4">
-    <div class="well">
-      <h3>Look I'm A Sidebar!</h3>
+  <div class="col-sm-8">
+    <div id="urlList">
     </div>
   </div>
 </div>
@@ -30,5 +46,107 @@
   <%- include('../partials/footer'); %>
 </footer>
 
+<script>
+  items = [];
+
+  function getList()
+  {
+      var xmlhttp = new XMLHttpRequest();
+      let params = {
+        skip:document.getElementById('skip').value,
+        limit:document.getElementById('limit').value,
+        name:document.getElementById('name').value
+      }
+      xmlhttp.open("GET", '/urls'+formatParams(params), true);
+      //Send the proper header information along with the request
+      xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  
+      xmlhttp.onreadystatechange = function() { // Call a function when the state changes.
+          if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+              // Request finished. Do processing here.
+              let res = JSON.parse(xmlhttp.responseText);
+              let html = '';
+              items = res.items;
+              for(let item of items){
+                html += `<div><a id="${item._id}" href="${item.url}">PENDING</a><b onclick="scrap('${item.url}')">${item.url}</b></div>`;
+              }
+              document.getElementById('urlList').innerHTML = html;
+              document.getElementById('skip').value = parseInt(params.skip) + parseInt(params.limit);
+              if(document.getElementById('auto').checked){
+                scrap(items[0]['url']);
+              }
+          }
+      }
+      xmlhttp.send("");
+  } 
+
+
+  function scrap(scrapurl)
+  {
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.open("POST", '/scrap', true);
+      //Send the proper header information along with the request
+      xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  
+      xmlhttp.onreadystatechange = function() { // Call a function when the state changes.
+          if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+              // Request finished. Do processing here.
+              console.log('resp',xmlhttp.responseText);
+              const el1 = document.querySelector(`[href="${xmlhttp.responseText}"]`);
+              el1.innerHTML = "COMPLETE";
+              el1.style.backgroundColor = "green";
+              el1.style.color = "white";
+              checkAutoHit(scrapurl);
+          }
+
+          if (this.readyState === XMLHttpRequest.DONE && this.status === 202) {
+              // Request finished. Do processing here.
+              console.log('resp',xmlhttp.responseText);
+              const el1 = document.querySelector(`[href="${xmlhttp.responseText}"]`);
+              el1.innerHTML = "COMPLETE";
+              el1.style.backgroundColor = "orange";
+              el1.style.color = "white";
+              checkAutoHit(scrapurl);
+          }
+          
+
+      }
+      // var scrapurl = document.getElementById('scrapurl').value;
+      xmlhttp.send("url="+scrapurl);
+  } 
+
+
+  function formatParams( params ){
+    return "?" + Object
+      .keys(params)
+      .map(function(key){
+        return key+"="+encodeURIComponent(params[key])
+      })
+      .join("&")
+  }
+
+
+  async function checkAutoHit(curretUrl){
+    let auto = document.getElementById('auto').checked;
+    await new Promise((resolve,reject)=>{
+      setTimeout(()=>{
+        resolve('DONE');
+      },1000)
+    });
+
+    if(auto){
+      let findIndex = items.findIndex(item=> item.url == curretUrl);
+      console.log(findIndex,items.length-1)
+      if(findIndex == items.length-1){
+        getList();
+      }else{
+        let newItem = items[findIndex+1];
+        scrap(newItem.url);
+      }
+    }
+
+  }
+
+  </script>
 </body>
 </html>

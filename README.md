@@ -18,4 +18,4 @@ $ node server.js
  then we can read all the xml again to store into database.
  So it make an entry into mongodb database "node-web-scrapper" collection "urls" for each other links then xml.
 
-which cna be further used for crapping One by One.
+which can be further used for crapping One by One.

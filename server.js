@@ -9,9 +9,11 @@ const transform = require('camaro');
 const app     = express();
 
 const mongoose = require('mongoose');
+const { text } = require('cheerio/lib/api/manipulation');
+const { data } = require('cheerio/lib/api/attributes');
 
 mongoose.Promise = Promise;
-mongoose.connect("mongodb://localhost:27017/node-web-scrapper", {
+mongoose.connect("mongodb://localhost:27017/one-mg", {
      useNewUrlParser: true,
      useUnifiedTopology: true 
      }).then(success => {
@@ -27,8 +29,17 @@ app.use(express.json());
 
 
 const UrlSchema = new mongoose.Schema({
-    url: {type: String, trim: true, default: null},
-});
+    id: {type:Number},
+    name: {type:String}, 
+    url: {type: String, trim: true, unique: true },
+    schema: {type: Object},
+    type: {type:String, trim:true},
+  },
+  { 
+    timestamps: true 
+  }
+);
+
 var UrlDocument = mongoose.model('url', UrlSchema);
 
 // index page
@@ -39,7 +50,9 @@ app.get('/', function(req, res) {
 
 // about page
 app.get('/about', function(req, res) {
-  res.render('pages/about');
+  var site = 'https://www.1mg.com/drugs/hp-kit-145048';
+  site = "https://www.1mg.com/drugs/otrizest-mini-nasal-drops-476475";
+  res.render('pages/about',{site:site, items:[]});
 });
 
 var number=0;
@@ -77,7 +90,11 @@ async function scrapXMLUrl(url){
                 }else{
                   array.push({ id: number, url : url.$text });
                   number++;
-                  UrlDocument.collection.insertOne({url:url.$text},{});
+                  let done = UrlDocument.collection.insertOne({url:url.$text},{}).catch(err=>{
+                    // console.log('err==============>err===>',err);
+                  })
+                  // console.log('=======================>', done)
+                  
                 }                
             });
             xmlStream.on('end', function(url) {
@@ -88,44 +105,87 @@ async function scrapXMLUrl(url){
         });
       });
    
+  }).catch((err)=>{
+    console.log('ERROR===========>',err)
   });
 }
 
 
-app.get('/scrape', function(req, res){
+app.post('/scrap', function(req, res){
   // Let's scrape Anchorman 2
-  url = 'http://www.imdb.com/title/tt1229340/';
-
-  request(url, function(error, response, html){
+  var url = req.body.url;
+  var json = {};
+  console.log(url);
+  request(url, async function(error, response, html){
     if(!error){
       var $ = cheerio.load(html);
-
-      var title, release, rating;
-      var json = { title : "", release : "", rating : ""};
-
-      $('h1').filter(function(){
+      var h = $('h1').filter(function(){
         var data = $(this);
-        title = data.text().trim();
-        release = data.text().trim();
+        json.title = data.text().trim();
+      });
+  
+      if($("script[type='application/ld+json']").length){
+        const jsonRaw = $("script[type='application/ld+json']")[0].children[0].data; 
+        json.drug = JSON.parse(jsonRaw);
+  
+        if(json.drug['@type'] == 'Drug' || json.drug['@type'] == 'Drug'){
+          let filter = {url: url};
+          let update = {
+            schema: json.drug,
+            name: json.drug.name,
+            id: url.match(/(?:-)(\d+)$/)[1],
+            type: json.drug['@type']
+          }
+          let action = await UrlDocument.findOneAndUpdate(filter, update,{new:true}).catch((err)=>{});
+          // console.log('action',action);
+          console.log("200");
+          res.status(200).send(url);
+        }else{
+          console.log("202");
+          res.status(202).send(url);
+        }
+      }else{
+        console.log("202");
+        res.status(202).send(url);
+      }
 
-        json.title = title;
-        json.release = release;
-      })
-
-      $('.AggregateRatingButton__RatingScore-sc-1ll29m0-1').filter(function(){
-        var data = $(this);
-        rating = data.text().trim();
-        json.rating = rating;
-      })
+    }else{
+      console.log("202");
+      res.status(202).send(url);
     }
-
-    fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err){
-      console.log('File successfully written! - Check your project directory for the output.json file');
-    })
-
-    res.send('Check your console!',json);
+    // console.log("200");
+    // res.status(200).send(url);
   })
 })
+
+
+// index page
+app.get("/urls", (req, res) => {
+  var skip = parseInt(req.query.skip) || 0; //for next page pass 1 here
+  var limit = parseInt(req.query.limit) || 10;
+  var name = parseInt(req.query.name) || '';
+  var query = {url: new RegExp(name, "i")};
+  console.log('skip',skip,'limit',limit,'name',name)
+  UrlDocument.find(query)
+    .skip(skip) //Notice here
+    .limit(limit)
+    .exec((err, doc) => {
+      if (err) {
+        return res.json(err);
+      }
+      UrlDocument.countDocuments(query).exec((count_error, count) => {
+        if (err) {
+          return res.json(count_error);
+        }
+        return res.json({
+          total: count,
+          pageSize: doc.length,
+          items: doc
+        });
+      });
+    });
+});
+
 
 app.listen('8081')
 console.log('Magic happens on port 8081');
