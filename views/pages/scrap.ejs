@@ -3,7 +3,7 @@
 <head>
   <%- include('../partials/head'); %>
 </head>
-<body class="container">
+<body class="">
 
 <header>
   <%- include('../partials/header'); %>
@@ -11,7 +11,7 @@
 <style>
   #urlList a{
     display:inline-block;
-    padding:10px;
+    /* padding:10px; */
     margin-right: 10px;
   }
   #auto{
@@ -20,24 +20,41 @@
     float: left;
     margin-right: 10px;
   }
+  .item{
+    font-size: 10px;
+    width: 33%;
+    float: left;
+  }
+  #completed{
+    color:green;
+    font-weight: bold;
+  }
 </style>
-<main>
+<main class="col-sm-12">
 <div class="row">
-  <div class="col-sm-4">
+  <div class="col-sm-2">
     <hr/>
     <label>
       <input id="auto" type="checkbox" name="auto" value="auto" /> AUTO HIT
     </label>
-    <input id="name" type="text" name="site" value="" style="width:100%" />
+    <input id="name" type="text" name="site" value="hp-kit" style="width:100%" onchange="reset()"/>
     <input id="skip" type="text" name="site" value="0" style="width:100%" placeholder="skip"/>
     <input id="limit" type="text" name="site" value="10" style="width:100%" placeholder="limit"/>
     <hr/>
     <button onclick="getList()">LIST</button>
+    
   </div>
 
-  <div class="col-sm-8">
+  <div class="col-sm-10">
+    <p> TOTAL: <span id="count">0</span> &nbsp;&nbsp;&nbsp; SUCCESS:<span id="completed">0</span></p>
     <div id="urlList">
     </div>
+  </div>
+
+  <div class="col-sm-12">
+    <pre id="schema">
+
+    </pre>
   </div>
 </div>
 </main>
@@ -47,7 +64,14 @@
 </footer>
 
 <script>
-  items = [];
+  var items = [];
+  var completed = 0;
+  var completedEl = document.getElementById('completed');
+
+  function reset(){
+    items = [];
+    document.getElementById('skip').value = 0;
+  }
 
   function getList()
   {
@@ -68,10 +92,11 @@
               let html = '';
               items = res.items;
               for(let item of items){
-                html += `<div><a id="${item._id}" href="${item.url}">PENDING</a><b onclick="scrap('${item.url}')">${item.url}</b></div>`;
+                html += `<div class="item"><a id="${item._id}" href="${item.url}" >PENDING</a><b  onclick="scrap('${item.url}')" >${item.url}</b><b onclick="getSchema('${item.url}')">DATA</b></div>`;
               }
               document.getElementById('urlList').innerHTML = html;
-              document.getElementById('skip').value = parseInt(params.skip) + parseInt(params.limit);
+              // document.getElementById('skip').value = parseInt(params.skip) + parseInt(params.limit);
+              document.getElementById('count').innerHTML = res.total;
               if(document.getElementById('auto').checked){
                 scrap(items[0]['url']);
               }
@@ -91,7 +116,8 @@
       xmlhttp.onreadystatechange = function() { // Call a function when the state changes.
           if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
               // Request finished. Do processing here.
-              console.log('resp',xmlhttp.responseText);
+              // console.log('resp',xmlhttp.responseText);
+              completedEl.innerHTML = completed++;
               const el1 = document.querySelector(`[href="${xmlhttp.responseText}"]`);
               el1.innerHTML = "COMPLETE";
               el1.style.backgroundColor = "green";
@@ -101,9 +127,9 @@
 
           if (this.readyState === XMLHttpRequest.DONE && this.status === 202) {
               // Request finished. Do processing here.
-              console.log('resp',xmlhttp.responseText);
+              // console.log('resp',xmlhttp.responseText);
               const el1 = document.querySelector(`[href="${xmlhttp.responseText}"]`);
-              el1.innerHTML = "COMPLETE";
+              el1.innerHTML = "NO RESPONSE";
               el1.style.backgroundColor = "orange";
               el1.style.color = "white";
               checkAutoHit(scrapurl);
@@ -128,15 +154,14 @@
 
   async function checkAutoHit(curretUrl){
     let auto = document.getElementById('auto').checked;
-    await new Promise((resolve,reject)=>{
-      setTimeout(()=>{
-        resolve('DONE');
-      },1000)
-    });
+    // await new Promise((resolve,reject)=>{
+    //   setTimeout(()=>{
+    //     resolve('DONE');
+    //   },1000)
+    // });
 
     if(auto){
       let findIndex = items.findIndex(item=> item.url == curretUrl);
-      console.log(findIndex,items.length-1)
       if(findIndex == items.length-1){
         getList();
       }else{
@@ -145,6 +170,18 @@
       }
     }
 
+  }
+
+
+  function getSchema(curretUrl){
+    console.log(curretUrl);
+    let findIndex = items.findIndex(item=> item.url == curretUrl);
+    console.log(findIndex);
+    if(findIndex >= 0){
+      let schemaEl = document.getElementById('schema');
+      console.log(items[findIndex]);
+      schemaEl.innerHTML = JSON.stringify(items[findIndex],undefined,4);
+    }
   }
 
   </script>

@@ -11,10 +11,19 @@
 
 <main>
   <div class="jumbotron">
-    <h1>Welcome to NodeJS scrapping plaeform</h1>
-    <p>Welcome to templating using EJS</p>
+    <h1>Welcome to NodeJS scrapping plateform</h1>
+    <p>Scrap XML files here and store it to database.</p>
+    <p>Then go to scrap page to scrap urls one by one</p>
     <input id="site" type="text" name="site" value="<%- site %>" style="width:100%" />
     <button onclick="show()">RUN</button>
+    <h3>This will create all sitemap.xml files along with server.js then read it and store urls into the mongodb collection urls.
+      <pre>
+        {
+          _id: Object,
+          url: url
+        }
+      </pre>
+    </h3>
     <div id="siteList">
 
     </div>

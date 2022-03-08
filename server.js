@@ -49,10 +49,10 @@ app.get('/', function(req, res) {
 });
 
 // about page
-app.get('/about', function(req, res) {
+app.get('/scrap', function(req, res) {
   var site = 'https://www.1mg.com/drugs/hp-kit-145048';
   site = "https://www.1mg.com/drugs/otrizest-mini-nasal-drops-476475";
-  res.render('pages/about',{site:site, items:[]});
+  res.render('pages/scrap',{site:site, items:[]});
 });
 
 var number=0;
@@ -98,7 +98,7 @@ async function scrapXMLUrl(url){
                 }                
             });
             xmlStream.on('end', function(url) {
-                console.log(array);
+                // console.log(array);
                 links = [...links, ...array];
                 resolve(array);
             });  
@@ -115,7 +115,7 @@ app.post('/scrap', function(req, res){
   // Let's scrape Anchorman 2
   var url = req.body.url;
   var json = {};
-  console.log(url);
+  // console.log(url);
   request(url, async function(error, response, html){
     if(!error){
       var $ = cheerio.load(html);
@@ -138,19 +138,19 @@ app.post('/scrap', function(req, res){
           }
           let action = await UrlDocument.findOneAndUpdate(filter, update,{new:true}).catch((err)=>{});
           // console.log('action',action);
-          console.log("200");
+          
           res.status(200).send(url);
         }else{
-          console.log("202");
+          
           res.status(202).send(url);
         }
       }else{
-        console.log("202");
+       
         res.status(202).send(url);
       }
 
     }else{
-      console.log("202");
+      
       res.status(202).send(url);
     }
     // console.log("200");
@@ -163,9 +163,12 @@ app.post('/scrap', function(req, res){
 app.get("/urls", (req, res) => {
   var skip = parseInt(req.query.skip) || 0; //for next page pass 1 here
   var limit = parseInt(req.query.limit) || 10;
-  var name = parseInt(req.query.name) || '';
-  var query = {url: new RegExp(name, "i")};
-  console.log('skip',skip,'limit',limit,'name',name)
+  var name = req.query.name || '';
+  var query = { 
+    name:{ $exists : false }, // exclude if name key exists
+    url: { "$regex": name, "$options": "i" }
+   }
+  // console.log('skip',skip,'limit',limit,'name',name)
   UrlDocument.find(query)
     .skip(skip) //Notice here
     .limit(limit)
